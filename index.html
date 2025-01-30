@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IP Информация</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Подключаем Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -127,7 +129,12 @@
         <button class="map-button" onclick="showMap()"><i class="fas fa-map-marked-alt fa-icon"></i>Посмотреть карту</button>
     </div>
 
+    <!-- Подключаем Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        let map;
+        let marker;
+
         // Функция для получения информации об IP
         async function getIpInfo() {
             // Очищаем старую информацию
@@ -159,6 +166,10 @@
                 `;
 
                 document.getElementById('ipInfo').innerHTML = info;
+
+                // Сохраняем координаты для карты
+                window.latitude = data.latitude;
+                window.longitude = data.longitude;
             } catch (error) {
                 console.error('Ошибка:', error);
                 document.getElementById('ipInfo').innerHTML = '<p>Не удалось получить информацию.</p>';
@@ -169,15 +180,29 @@
 
         // Функция для отображения карты
         function showMap() {
-            const ipInfo = document.getElementById('ipInfo').innerText;
-            const latitudeMatch = ipInfo.match(/ШИРОТА: ([\d.-]+)/);
-            const longitudeMatch = ipInfo.match(/ДОЛГОТА: ([\d.-]+)/);
+            const latitude = window.latitude;
+            const longitude = window.longitude;
 
-            if (latitudeMatch && longitudeMatch) {
-                const latitude = latitudeMatch[1];
-                const longitude = longitudeMatch[1];
-                const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=14/${latitude}/${longitude}`;
-                window.open(mapUrl, '_blank');
+            if (latitude && longitude) {
+                // Инициализация карты, если она еще не создана
+                if (!map) {
+                    map = L.map('map').setView([latitude, longitude], 13);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+                } else {
+                    map.setView([latitude, longitude], 13);
+                }
+
+                // Удаляем старый маркер, если он есть
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+
+                // Добавляем новый маркер
+                marker = L.marker([latitude, longitude]).addTo(map)
+                    .bindPopup('Точное местоположение')
+                    .openPopup();
             } else {
                 alert('Не удалось определить координаты для карты.');
             }
