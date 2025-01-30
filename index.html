@@ -17,6 +17,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            position: relative;
         }
         .container {
             max-width: 600px;
@@ -110,23 +111,89 @@
             margin: 0 auto 20px;
             width: 100px;
         }
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .language-switcher button {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .language-switcher button:hover {
+            background-color: #0056b3;
+        }
+        .language-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .language-modal button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .language-modal button:hover {
+            background-color: #0056b3;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
+    <div class="language-switcher">
+        <button onclick="openLanguageModal()">Язык</button>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="language-modal" id="languageModal">
+        <button onclick="changeLanguage('ru')">Русский</button>
+        <button onclick="changeLanguage('en')">English</button>
+    </div>
+
     <div class="container">
         <img src="logo.png" alt="Логотип" class="logo">
-        <h1><i class="fas fa-globe fa-icon"></i>Информация по IP-адресу</h1>
-        <input type="text" id="ipInput" placeholder="Введите IP-адрес">
-        <button onclick="getIpInfo()"><i class="fas fa-search fa-icon"></i>Отправить</button>
+        <h1><i class="fas fa-globe fa-icon"></i><span data-lang="ru">Информация по IP-адресу</span><span data-lang="en" style="display:none;">IP Information</span></h1>
+        <input type="text" id="ipInput" placeholder="Введите IP-адрес" data-lang="ru">
+        <input type="text" id="ipInputEn" placeholder="Enter IP address" data-lang="en" style="display:none;">
+        <button onclick="getIpInfo()"><i class="fas fa-search fa-icon"></i><span data-lang="ru">Отправить</span><span data-lang="en" style="display:none;">Submit</span></button>
 
         <div class="loading" id="loading">
-            <i class="fas fa-spinner fa-spin"></i> Загрузка...
+            <i class="fas fa-spinner fa-spin"></i> <span data-lang="ru">Загрузка...</span><span data-lang="en" style="display:none;">Loading...</span>
         </div>
 
         <div class="info" id="ipInfo"></div>
 
-        <div id="map">Карта появится здесь</div>
-        <button class="map-button" onclick="showMap()"><i class="fas fa-map-marked-alt fa-icon"></i>Посмотреть карту</button>
+        <div id="map"><span data-lang="ru">Карта появится здесь</span><span data-lang="en" style="display:none;">Map will appear here</span></div>
+        <button class="map-button" onclick="showMap()"><i class="fas fa-map-marked-alt fa-icon"></i><span data-lang="ru">Посмотреть карту</span><span data-lang="en" style="display:none;">View Map</span></button>
     </div>
 
     <!-- Подключаем Leaflet JS -->
@@ -135,13 +202,35 @@
         let map;
         let marker;
 
+        // Функция для открытия модального окна выбора языка
+        function openLanguageModal() {
+            document.getElementById('languageModal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        // Функция для смены языка
+        function changeLanguage(lang) {
+            const elements = document.querySelectorAll('[data-lang]');
+            elements.forEach(element => {
+                if (element.getAttribute('data-lang') === lang) {
+                    element.style.display = 'inline';
+                } else {
+                    element.style.display = 'none';
+                }
+            });
+
+            // Скрываем модальное окно и оверлей
+            document.getElementById('languageModal').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
         // Функция для получения информации об IP
         async function getIpInfo() {
             // Очищаем старую информацию
             document.getElementById('ipInfo').innerHTML = '';
             document.getElementById('loading').style.display = 'block';
 
-            const ip = document.getElementById('ipInput').value;
+            const ip = document.getElementById('ipInput').value || document.getElementById('ipInputEn').value;
             const apiKey = '921d88bfbbed4a6ca06f956ddfdb60ec'; // Замените на ваш API ключ
             const url = `https://api.ipgeolocation.io/ipgeo?apiKey=${apiKey}&ip=${ip}`;
 
@@ -150,19 +239,19 @@
                 const data = await response.json();
 
                 const info = `
-                    <p><strong><i class="fas fa-network-wired fa-icon"></i>IP:</strong> ${data.ip}</p>
-                    <p><strong><i class="fas fa-flag fa-icon"></i>СТРАНА:</strong> ${data.country_name}</p>
-                    <p><strong><i class="fas fa-code fa-icon"></i>НАЦИОНАЛЬНЫЙ СТАНДАРТ ISO:</strong> ${data.country_code2}</p>
-                    <p><strong><i class="fas fa-map-marker-alt fa-icon"></i>ШТАТ:</strong> ${data.state_prov}</p>
-                    <p><strong><i class="fas fa-city fa-icon"></i>ГОРОД:</strong> ${data.city}</p>
-                    <p><strong><i class="fas fa-envelope fa-icon"></i>ПОЧТОВЫЙ ИНДЕКС:</strong> ${data.zipcode}</p>
-                    <p><strong><i class="fas fa-map-pin fa-icon"></i>ШИРОТА:</strong> ${data.latitude}</p>
-                    <p><strong><i class="fas fa-map-pin fa-icon"></i>ДОЛГОТА:</strong> ${data.longitude}</p>
-                    <p><strong><i class="fas fa-building fa-icon"></i>ОРГАНИЗАЦИЯ:</strong> ${data.organization}</p>
-                    <p><strong><i class="fas fa-wifi fa-icon"></i>ПРОВАЙДЕР:</strong> ${data.isp}</p>
-                    <p><strong><i class="fas fa-clock fa-icon"></i>ЧАСОВОЙ ПОЯС:</strong> ${data.time_zone.name}</p>
-                    <p><strong><i class="fas fa-money-bill-wave fa-icon"></i>ВАЛЮТА:</strong> ${data.currency.code} (${data.currency.name})</p>
-                    <p><strong><i class="fas fa-plug fa-icon"></i>ТИП СОЕДИНЕНИЯ:</strong> ${data.connection_type}</p>
+                    <p><strong><i class="fas fa-network-wired fa-icon"></i><span data-lang="ru">IP:</span><span data-lang="en" style="display:none;">IP:</span></strong> ${data.ip}</p>
+                    <p><strong><i class="fas fa-flag fa-icon"></i><span data-lang="ru">СТРАНА:</span><span data-lang="en" style="display:none;">COUNTRY:</span></strong> ${data.country_name}</p>
+                    <p><strong><i class="fas fa-code fa-icon"></i><span data-lang="ru">НАЦИОНАЛЬНЫЙ СТАНДАРТ ISO:</span><span data-lang="en" style="display:none;">ISO CODE:</span></strong> ${data.country_code2}</p>
+                    <p><strong><i class="fas fa-map-marker-alt fa-icon"></i><span data-lang="ru">ШТАТ:</span><span data-lang="en" style="display:none;">STATE:</span></strong> ${data.state_prov}</p>
+                    <p><strong><i class="fas fa-city fa-icon"></i><span data-lang="ru">ГОРОД:</span><span data-lang="en" style="display:none;">CITY:</span></strong> ${data.city}</p>
+                    <p><strong><i class="fas fa-envelope fa-icon"></i><span data-lang="ru">ПОЧТОВЫЙ ИНДЕКС:</span><span data-lang="en" style="display:none;">ZIP CODE:</span></strong> ${data.zipcode}</p>
+                    <p><strong><i class="fas fa-map-pin fa-icon"></i><span data-lang="ru">ШИРОТА:</span><span data-lang="en" style="display:none;">LATITUDE:</span></strong> ${data.latitude}</p>
+                    <p><strong><i class="fas fa-map-pin fa-icon"></i><span data-lang="ru">ДОЛГОТА:</span><span data-lang="en" style="display:none;">LONGITUDE:</span></strong> ${data.longitude}</p>
+                    <p><strong><i class="fas fa-building fa-icon"></i><span data-lang="ru">ОРГАНИЗАЦИЯ:</span><span data-lang="en" style="display:none;">ORGANIZATION:</span></strong> ${data.organization}</p>
+                    <p><strong><i class="fas fa-wifi fa-icon"></i><span data-lang="ru">ПРОВАЙДЕР:</span><span data-lang="en" style="display:none;">ISP:</span></strong> ${data.isp}</p>
+                    <p><strong><i class="fas fa-clock fa-icon"></i><span data-lang="ru">ЧАСОВОЙ ПОЯС:</span><span data-lang="en" style="display:none;">TIMEZONE:</span></strong> ${data.time_zone.name}</p>
+                    <p><strong><i class="fas fa-money-bill-wave fa-icon"></i><span data-lang="ru">ВАЛЮТА:</span><span data-lang="en" style="display:none;">CURRENCY:</span></strong> ${data.currency.code} (${data.currency.name})</p>
+                    <p><strong><i class="fas fa-plug fa-icon"></i><span data-lang="ru">ТИП СОЕДИНЕНИЯ:</span><span data-lang="en" style="display:none;">CONNECTION TYPE:</span></strong> ${data.connection_type}</p>
                 `;
 
                 document.getElementById('ipInfo').innerHTML = info;
@@ -172,7 +261,7 @@
                 window.longitude = data.longitude;
             } catch (error) {
                 console.error('Ошибка:', error);
-                document.getElementById('ipInfo').innerHTML = '<p>Не удалось получить информацию.</p>';
+                document.getElementById('ipInfo').innerHTML = '<p><span data-lang="ru">Не удалось получить информацию.</span><span data-lang="en" style="display:none;">Failed to retrieve information.</span></p>';
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
@@ -201,12 +290,12 @@
 
                 // Добавляем новый маркер
                 marker = L.marker([latitude, longitude]).addTo(map)
-                    .bindPopup('Точное местоположение')
+                    .bindPopup('<span data-lang="ru">Точное местоположение</span><span data-lang="en" style="display:none;">Exact location</span>')
                     .openPopup();
             } else {
-                alert('Не удалось определить координаты для карты.');
+                alert('<span data-lang="ru">Не удалось определить координаты для карты.</span><span data-lang="en" style="display:none;">Failed to determine coordinates for the map.</span>');
             }
         }
     </script>
 </body>
-</html>
+    </html>
